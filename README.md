@@ -1,4 +1,4 @@
-# lead-anemia-school-readiness
+# lead-anemia-school readiness
 This repository contains the stantisticak analysis codes used to generate the results, tables, and figures reported in the manuscript:
 Roy A, et al. *Lead exposure, anemia, and school readiness among low-income urban children in Bihar, India: A longitudinal study.*
 
