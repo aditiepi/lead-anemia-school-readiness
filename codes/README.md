@@ -1,1 +1,2 @@
-This folder contains the STATA scripts used for statistical analyses
+This folder contains the STATA and R scripts used for statistical analyses
+
