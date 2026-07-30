@@ -16,15 +16,13 @@ The repository includes:
 
 ### File descriptions
 
-| File | Description |
-|------|-------------|
-| `01_merge_prepare_data.do` | Data cleaning, merging of datasets, derivation of analytical variables, and preparation of the final analytical dataset. |
-| `02_pb_idela_analysis.do` | Primary longitudinal analyses examining the association between blood lead concentrations and school readiness, including interaction analyses. |
-| `03_pb_evt_analysis.do` | Longitudinal analyses examining associations between blood lead concentrations and executive function outcomes. |
-| `04_*.do` | Additional statistical analyses and sensitivity analyses used in the manuscript. |
-| `05_*.do` | Supplementary analyses and generation of manuscript tables. |
-| `06_IDELA_IRT_scoring.do` | Cleaning and scoring of the International Development and Early Learning Assessment (IDELA) using an Item Response Theory (IRT) approach. |
-| `Figure2_Spline_Analysis.Rmd` | Restricted cubic spline analyses, model comparisons, prediction of marginal effects, and generation of publication-quality figures. |
+01_merge_prepare_data.do | Data cleaning, merging of datasets, derivation of analytical variables, and preparation of the final analytical dataset. |
+02_pb_idela_analysis.do | Primary longitudinal analyses examining the association between blood lead concentrations and school readiness, including interaction analyses, generation of Table 2 |
+03_pb_eyt_analysis.do | Longitudinal analyses examining associations between blood lead concentrations and executive function outcomes, generation of Table 2 |
+04_Table 1.do | Generation of Table 1 |
+05_idela_cleaning.do | A Stata script for cleaning and scoring the International Development and Early Learning Assessment (IDELA) using an Item Response Theory (IRT) approach |
+06_IDELA_IRT_scoring.do | Cleaning and scoring of the International Development and Early Learning Assessment (IDELA) using an Item Response Theory (IRT) approach. |
+08_Figure 2 and non-linearity check.Rmd | Restricted cubic spline analyses, model comparisons, prediction of marginal effects, and generation of publication-quality figures. |
 
 ---
 
