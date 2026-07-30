@@ -1,0 +1,488 @@
+---
+############################################################
+# Lead exposure and school readiness
+#
+# R script: spline and figure.Rmd
+#
+# Purpose:
+# Evaluate non-linearity using natural cubic splines. Prepare figure 2
+#
+# Input:
+# analysis_dataset.dta
+#
+# Output:
+# Spline model and figures
+#
+# Software:
+# R 4.3.3
+############################################################
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+```
+
+```{r}
+##Load libraries
+library(tidyverse)
+library(lme4)
+library(splines)
+library(ggplot2)
+library(dplyr)
+library(readr)
+library(haven)
+library(splines)
+library(ggeffects)
+library(sjPlot)
+library(scales) 
+```
+
+
+```{r}
+##Set directory
+setwd("C:/Users/AditiRoy/OneDrive - Centre For Chronic Disease Control/ECD_Urban Pollution/pb_ECD_paper")
+
+```
+
+## Read data
+```{r}
+data1 <- read_dta("analysis_dataset.dta")
+```
+
+##Convert factors
+```{r}
+data1$record_id <- as.factor(data1$record_id)
+data1$m_edu_recode3 <- as.factor(data1$m_edu_recode3)
+
+data1 <- data1 %>%  
+  mutate(
+    log2bpb2_c = scale(log2bpb2, center = TRUE, scale = FALSE),
+    c_age_c    = scale(c_age, center = TRUE, scale = FALSE),
+    crowding_c = scale(crowding, center = TRUE, scale = FALSE)
+  )
+```
+
+  
+
+```{r}
+#reshape the data 
+library(tidyr)
+
+data1 <- data1 %>%
+  pivot_longer(
+    cols = c(
+      z_theta_total2m_t1, z_theta_total2m_t2,
+      z_score_mrant_t1, z_score_mrant_t2
+    ),
+    names_to = c(".value", "time"),
+    names_pattern = "(.*?)([12])$"
+  )
+
+data1$time <- as.numeric(data1$time)
+
+```
+
+
+##Fit Linear mixed model (Pb and IRT-derived IDEA_z scores)
+```{r}
+
+model_linear <- lmer(
+  z_theta_total2m_t ~ 
+    log2bpb2 +
+    time +
+    c_age +
+    child_hb +
+    crowding +
+    factor(m_edu_recode3) +
+    (1 | record_id),
+  data = data1,
+  REML = TRUE
+)
+summary(model_linear)
+est <- fixef(model_linear)["log2bpb2"]
+se  <- summary(model_linear)$coefficients["log2bpb2", "Std. Error"]
+ci  <- confint(model_linear, parm = "log2bpb2", method="Wald")
+
+cat("Beta:", round(est,3),
+    "SE:", round(se,3),
+    "95% CI:", round(ci[1],3), "to", round(ci[2],3))
+
+```
+
+## Fit Spline model (Pb and IRT-derived IDELA-z-scores)
+
+```{r}
+data1$log2bpb2_c <- scale(data1$log2bpb2, center = TRUE, scale = FALSE)
+model_spline <- lmer(
+  z_theta_total2m_t ~ 
+    ns(log2bpb2_c, df = 3) +
+    time +
+    c_age +
+    child_hb +
+    crowding +
+    m_edu_recode3 +
+    (1 | record_id),
+  data = data1,
+  REML = FALSE,
+  control = lmerControl(
+    optimizer = "bobyqa",
+    optCtrl = list(maxfun = 200000)
+)
+)
+
+summary(model_spline)
+# Find the mean that was used to center the variable
+lead_mean <- attr(data1$log2bpb2_c, "scaled:center")
+
+```
+
+##Compare the generalized linear model with spline model
+```{r}
+anova(model_linear, model_spline)
+```
+
+
+##Testing interactions- Pb and child_hb on IRT-derived IDELA-z scores
+```{r}
+data1$child_hb_c <- scale(data1$child_hb, center = TRUE, scale = FALSE)
+
+model_linear_int <- lmer(
+  z_theta_total2m_t ~ 
+    log2bpb2 * child_hb_c +
+    time +
+    c_age +
+    crowding +
+    factor(m_edu_recode3) +
+    (1 | record_id),
+  data = data1,
+  REML = FALSE
+)
+summary(model_linear_int)
+```
+
+```{r}
+hb_mean <- mean(data1$child_hb, na.rm = TRUE)
+hb_sd   <- sd(data1$child_hb, na.rm = TRUE)
+
+hb_levels <- c(hb_mean - hb_sd, hb_mean, hb_mean + hb_sd)
+
+# Generate predictions
+pred <- ggpredict(
+  model_linear_int,
+  terms = c(
+    "log2bpb2 [all]",
+    "child_hb_c [-1,0,1]"
+  )
+)
+```
+
+## Create interaction plot (supplementary information)
+```{r}
+ggplot(
+  pred,
+  aes(
+    x = x,
+    y = predicted,
+    linetype = group
+  )
+) +
+ # 95% confidence intervals
+  geom_ribbon(
+    aes(
+      ymin = conf.low,
+      ymax = conf.high,
+      group = group
+    ),
+    fill = "grey70",
+    alpha = 0.25,
+    colour = NA
+  ) +
+
+  # Prediction lines
+  geom_line(
+    linewidth = 1,
+    colour = "black"
+  ) +
+
+  # Hb labels
+  scale_linetype_manual(
+    values = c("longdash", "solid", "dotted"),
+    labels = c(
+      "Low Hb (10.0 g/dL)",
+      "Mean Hb (11.3 g/dL)",
+      "High Hb (12.6 g/dL)"
+    )
+  ) +
+  guides(
+  linetype = guide_legend(
+    nrow = 2,
+    byrow = TRUE
+  )
+) +
+
+  # Convert log2 BPb back to actual BPb values
+  scale_x_continuous(
+    breaks = log2(c(4.5, 11.1, 20, 40)),
+    labels = c("4.5", "11.1", "20", "40")
+  ) +
+
+  labs(
+  x = "Blood lead level (μg/dL)",
+  y = "Predicted IDELA total z-score",
+  linetype = "Hemoglobin level"
+  ) +
+
+  annotate(
+    "text",
+    x = log2(20),
+    y = 0.05,
+    label = "P-interaction = 0.05",
+    size = 4
+  ) +
+
+  theme_classic(base_size = 12) +
+  theme(
+  axis.text.y = element_text(size = 7)
+) +
+
+  theme(
+    legend.position = "bottom",
+    legend.title = element_text(size = 11),
+    legend.text = element_text(size = 10)
+  )
+
+# Save figure
+ggsave(
+  "IDELA_Hb_interaction_curve.tiff",
+  width = 7,
+  height = 7,
+  dpi = 600,
+  units = "in",
+  compression = "lzw"
+)
+```
+
+
+##Figure 2A: Forest plot of the estimated difference in IDELA z-score
+
+```{r}
+# # comparing the 90th vs 10th percentile of blood lead level,
+# stratified by child hemoglobin. Estimates were obtained from
+# the primary mixed-effects model fitted in STATA.
+
+contrast_df <- data.frame(
+  Hb_level = c(
+    "Low Hb (10.0)",
+    "Mean Hb (11.3)",
+    "High Hb (12.6)"
+  ),
+  estimate = c(-0.27, -0.10, 0.06),
+  lower = c(-0.49, -0.27, -0.19),
+  upper = c(-0.04, 0.07, 0.31)
+)
+
+contrast_df$Hb_level <- factor(
+  contrast_df$Hb_level,
+  levels = c(
+    "Low Hb (10.0)",
+    "Mean Hb (11.3)",
+    "High Hb (12.6)"
+  )
+)
+
+ggplot(contrast_df, aes(x = Hb_level, y = estimate)) +
+  geom_point(size = 3) +
+  geom_errorbar(
+    aes(ymin = lower, ymax = upper),
+    width = 0.15
+  ) +
+  geom_hline(
+    yintercept = 0,
+    linetype = "dashed"
+  ) +
+  coord_cartesian(ylim = c(-0.5, 0.5)) +
+  theme_classic() +
+  labs(
+    x = "Child hemoglobin level (g/dL)",
+    y = "Difference in IDELA z-score\n(90th vs 10th percentile BPb)"
+  ) +
+  annotate(
+    "text",
+    x = 2,
+    y = 0.42,
+    label = "P-interaction = 0.05",
+    size = 4
+  )
+#Save figure
+ggsave("Figure2_IDELA_Hb_interaction.tiff",
+       width = 6,
+       height = 5,
+       units = "in",
+       dpi = 600,
+       compression = "lzw")
+
+ggsave("Figure2_IDELA_Hb_interaction.pdf",
+       width = 6,
+       height = 5,
+       units = "in")
+
+```
+
+##Fit linear model with WM
+```{r}
+model_WM_lin1 <- lmer(
+ z_score_mrant_t ~ 
+    log2bpb2 +
+    time +
+    c_age +
+    child_hb +
+    crowding +
+    factor(m_edu_recode3) +
+    (1 | record_id),
+  data = data1,
+  REML = FALSE
+)
+summary(model_WM_lin1)
+est <- fixef(model_WM_lin1)["log2bpb2"]
+se  <- summary(model_WM_lin1)$coefficients["log2bpb2", "Std. Error"]
+ci  <- confint(model_WM_lin1, parm = "log2bpb2", method="Wald")
+
+cat("Beta:", round(est,3),
+    "SE:", round(se,3),
+    "95% CI:", round(ci[1],3), "to", round(ci[2],3))
+
+```
+
+##Spline with WM
+```{r}
+model_spl_mrantscore <- lmer(
+  z_score_mrant_t ~ 
+    ns(log2bpb2_c, df = 3) +
+    time +
+    c_age +
+    child_hb +
+    crowding +
+    m_edu_recode3 +
+    (1 | record_id),
+  data = data1,
+  REML = FALSE,
+  control = lmerControl(
+    optimizer = "bobyqa",
+    optCtrl = list(maxfun = 200000)
+)
+)
+
+summary(model_spl_mrantscore)
+```
+
+##Compare the generalized linear model with spline model (WM)
+```{r}
+anova(model_WM_lin1, model_spl_mrantscore)
+
+```
+
+
+##Figure 2B: Forest plot of the estimated difference in Working Memory score
+```{r}
+# Working memory contrasts
+contrast_df_wm <- data.frame(
+  Hb_level = c(
+    "Low Hb (10.0)",
+    "Mean Hb (11.3)",
+    "High Hb (12.6)"
+  ),
+  estimate = c(
+    -0.24394906,
+    -0.10740147,
+     0.02914611
+  ),
+  lower.CL = c(
+    -0.4441881,
+    -0.2742444,
+    -0.1875065
+  ),
+  upper.CL = c(
+    -0.04370998,
+     0.05944149,
+     0.24579877
+  )
+)
+
+contrast_df_wm$Hb_level <- factor(
+  contrast_df_wm$Hb_level,
+  levels = c(
+    "Low Hb (10.0)",
+    "Mean Hb (11.3)",
+    "High Hb (12.6)"
+  )
+)
+
+# Plot
+p <- ggplot(
+  contrast_df_wm,
+  aes(x = Hb_level, y = estimate)
+) +
+
+  geom_point(
+    size = 3,
+    color = "black"
+  ) +
+
+  geom_errorbar(
+    aes(
+      ymin = lower.CL,
+      ymax = upper.CL
+    ),
+    width = 0.15,
+    color = "black"
+  ) +
+
+  geom_hline(
+    yintercept = 0,
+    linetype = "dashed"
+  ) +
+
+  coord_cartesian(
+    ylim = c(-0.5, 0.5)
+  ) +
+
+  scale_y_continuous(
+    breaks = seq(-0.5, 0.5, by = 0.1)
+  ) +
+
+  theme_classic(base_size = 12) +
+
+  labs(
+    x = "Child hemoglobin level (g/dL)",
+    y = "Difference in working memory z-score\n(40 vs 4.5 μg/dL BPb)"
+  ) +
+
+  annotate(
+    "text",
+    x = 2,
+    y = 0.42,
+    label = "P-interaction = 0.03",
+    size = 4
+  )
+
+# Display plot
+p
+
+# Save high-resolution TIFF
+ggsave(
+  filename = "BPb_Hb_interaction_WM.tiff",
+  plot = p,
+  width = 6,
+  height = 5,
+  units = "in",
+  dpi = 600,
+  compression = "lzw"
+)
+```
+
+
+
+
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
