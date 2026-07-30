@@ -1,1 +1,80 @@
-Contains STATA codes 
+# Statistical Analysis Code
+
+This repository contains the Stata (.do) and R Markdown (.Rmd) scripts used for the statistical analyses and figure generation for the manuscript:
+
+**Lead exposure, anemia, and school readiness among low-income urban children in Bihar, India: A longitudinal study**
+
+---
+
+## Repository contents
+
+The repository includes:
+
+- Stata do-files for data management, variable derivation, descriptive analyses, and longitudinal statistical analyses.
+- A Stata script for cleaning and scoring the International Development and Early Learning Assessment (IDELA) using an Item Response Theory (IRT) approach.
+- An R Markdown script used for restricted cubic spline analyses and publication-quality figure generation.
+
+### File descriptions
+
+| File | Description |
+|------|-------------|
+| `01_merge_prepare_data.do` | Data cleaning, merging of datasets, derivation of analytical variables, and preparation of the final analytical dataset. |
+| `02_pb_idela_analysis.do` | Primary longitudinal analyses examining the association between blood lead concentrations and school readiness, including interaction analyses. |
+| `03_pb_evt_analysis.do` | Longitudinal analyses examining associations between blood lead concentrations and executive function outcomes. |
+| `04_*.do` | Additional statistical analyses and sensitivity analyses used in the manuscript. |
+| `05_*.do` | Supplementary analyses and generation of manuscript tables. |
+| `06_IDELA_IRT_scoring.do` | Cleaning and scoring of the International Development and Early Learning Assessment (IDELA) using an Item Response Theory (IRT) approach. |
+| `Figure2_Spline_Analysis.Rmd` | Restricted cubic spline analyses, model comparisons, prediction of marginal effects, and generation of publication-quality figures. |
+
+---
+
+## IDELA scoring
+
+The same scoring algorithm was used for both the baseline (T1) and follow-up (T2) IDELA assessments. The IDELA scoring script included in this repository demonstrates the complete scoring procedure. The identical code was subsequently applied to the follow-up (T2) dataset by replacing the input dataset with the corresponding follow-up assessment data.
+
+---
+
+## Software
+
+Analyses were conducted using:
+
+- **Stata 16.1**
+- **R (version 4.x)**
+
+Key R packages include:
+
+- tidyverse
+- lme4
+- lmerTest
+- splines
+- ggplot2
+- ggeffects
+- emmeans
+
+---
+
+## Data availability
+
+The analytical dataset used in this study is not publicly available because it contains confidential participant information. De-identified and curated data may be made available to bona fide researchers for scientific purposes upon reasonable request to the corresponding author (aditi@ccdcindia.org), subject to the necessary institutional data-sharing agreements and ethics approvals.
+
+---
+
+## Reproducing the analyses
+
+Users will require access to the analytical dataset before running the scripts.
+
+The recommended workflow is:
+
+1. Run the Stata do-files sequentially to prepare the analytical dataset and perform the primary statistical analyses.
+2. Run the R Markdown script to perform the restricted cubic spline analyses and generate the publication-quality figures.
+3. Local file paths may need to be modified before executing the scripts.
+
+---
+
+## Contact
+
+For questions regarding the analysis code or requests for data access, please contact:
+
+**Dr. Aditi Roy**  
+Centre for Chronic Disease Control (CCDC), New Delhi  
+Email: aditi@ccdcindia.org
