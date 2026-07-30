@@ -37,7 +37,7 @@ The same scoring algorithm was used for both the baseline (T1) and follow-up (T2
 Analyses were conducted using:
 
 - **Stata 16.1**
-- **R (version 4.x)**
+- **R (version 4.3.3)**
 
 Key R packages include:
 
